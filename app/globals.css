@@ -2404,8 +2404,8 @@ p {
 .adnan-chat__suggestions button:hover { border-color: var(--brand-primary); color: var(--brand-primary); }
 .adnan-chat__suggestions button:disabled { opacity: 0.45; }
 .adnan-chat__form { display: flex; gap: 8px; margin: 0 12px; padding: 8px; border: 1px solid var(--line-strong); border-radius: 13px; background: var(--paper-raised); }
-.adnan-chat__form input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: var(--foreground); font-size: 0.82rem; }
-.adnan-chat__form input::placeholder { color: var(--muted); }
+.adnan-chat__form textarea { min-width: 0; flex: 1; resize: none; border: 0; outline: 0; background: transparent; color: var(--foreground); font: inherit; font-size: 0.82rem; line-height: 1.4; }
+.adnan-chat__form textarea::placeholder { color: var(--muted); }
 .adnan-chat__form button { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; background: var(--brand-primary); color: var(--brand-deep); transition: transform var(--speed) var(--ease), opacity var(--speed) var(--ease); }
 .adnan-chat__form button:hover:not(:disabled) { transform: translateY(-2px); }
 .adnan-chat__form button:disabled { opacity: 0.35; cursor: not-allowed; }

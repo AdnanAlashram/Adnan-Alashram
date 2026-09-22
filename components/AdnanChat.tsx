@@ -2,17 +2,17 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUp, Bot, ChevronDown, Sparkles, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { answerLocally, isArabicMessage, localizedFallback } from "@/lib/adnan-ai";
 import {
   emptyProjectInquiry,
   buildWhatsAppMessage,
   inquiryFieldLabel,
-  inquiryFields,
   inquirySummary,
   type InquiryField,
   type ProjectInquiry,
   validateProjectInquiry,
+  extractInquiryDetails,
 } from "@/lib/project-inquiry";
 
 type Message = {
@@ -58,19 +58,31 @@ export default function AdnanChat() {
     },
   ]);
 
+  useEffect(() => {
+    const messageList = document.querySelector<HTMLElement>(".adnan-chat__messages");
+    if (messageList) messageList.scrollTop = messageList.scrollHeight;
+  }, [messages, isLoading]);
+
   const appendAssistant = (content: string, source: Message["source"] = "local") => {
     setMessages((items) => [...items, { id: nextMessageId.current++, role: "assistant", content, source }]);
   };
 
-  const startProjectInquiry = (arabic = false) => {
-    setInquiry(emptyProjectInquiry);
+  const startProjectInquiry = (arabic = false, initialMessage = "") => {
+    const initialInquiry = initialMessage
+      ? extractInquiryDetails(initialMessage, {
+          ...emptyProjectInquiry,
+          projectDescription: initialMessage,
+          projectType: /app|application|تطبيق/i.test(initialMessage) ? "Mobile or web application" : /website|site|موقع/i.test(initialMessage) ? "Website" : "",
+        })
+      : emptyProjectInquiry;
+    setInquiry(initialInquiry);
     setInquiryArabic(arabic);
     setInquiryMode("collecting");
-    setInquiryField("name");
+    setInquiryField(initialMessage ? "desiredFeatures" : "projectDescription");
     appendAssistant(
       arabic
-        ? "ممتاز. رح ساعدك تجهّز طلب مشروع خطوة خطوة. أولًا، شو اسمك الكامل؟"
-        : "Great. I’ll help you prepare a project request step by step. First, what’s your full name?",
+        ? "أكيد، فيني ساعدك نجهّز فكرة المشروع. بالبداية خبرني شوي عن فكرتك."
+        : "Absolutely. Tell me a little about the project you have in mind first.",
     );
   };
 
@@ -100,10 +112,21 @@ export default function AdnanChat() {
       return;
     }
 
-    const updated = { ...inquiry, [inquiryField]: skipped ? "" : message };
+    const updated = extractInquiryDetails(message, { ...inquiry, [inquiryField]: skipped ? "" : message });
     setInquiry(updated);
-    const index = inquiryFields.indexOf(inquiryField);
-    const nextField = inquiryFields.slice(index + 1).find((field) => !updated[field] || optional);
+    const discoveryOrder: InquiryField[] = [
+      "projectDescription",
+      "projectType",
+      "desiredFeatures",
+      "requirements",
+      "name",
+      "email",
+      "phone",
+      "profession",
+      "currentCity",
+      "currentCountry",
+    ];
+    const nextField = discoveryOrder.find((field) => !updated[field] && field !== "requirements" && field !== "desiredFeatures");
     if (nextField) {
       setInquiryField(nextField);
       appendAssistant(questionForField(nextField, arabic));
@@ -139,11 +162,12 @@ export default function AdnanChat() {
     }
     if (inquiryMode === "review" || inquiryMode === "sent") return;
     if (isProjectStart(message)) {
-      startProjectInquiry(isArabicMessage(message));
+      startProjectInquiry(isArabicMessage(message), message);
       return;
     }
 
-    const localAnswer = answerLocally(message, currentProjectSlug);
+    const previousAssistant = [...messages].reverse().find((item) => item.role === "assistant")?.content;
+    const localAnswer = answerLocally(message, currentProjectSlug, previousAssistant);
     if (localAnswer) {
       setCurrentProjectSlug(localAnswer.projectSlug ?? currentProjectSlug);
       setMessages((items) => [
@@ -267,12 +291,21 @@ export default function AdnanChat() {
 
             {inquiryMode !== "review" && inquiryMode !== "sent" && (
               <form className="adnan-chat__form" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
-                <input
+                <textarea
                   value={input}
                   onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+                      event.preventDefault();
+                      event.currentTarget.form?.requestSubmit();
+                    }
+                  }}
                   placeholder={inquiryMode === "collecting" ? "Type your answer..." : "Ask about Adnan..."}
                   maxLength={600}
                   aria-label="Your message"
+                  enterKeyHint="send"
+                  autoComplete="off"
+                  rows={1}
                 />
                 <button type="submit" disabled={!input.trim() || isLoading} aria-label="Send message"><ArrowUp size={17} /></button>
               </form>

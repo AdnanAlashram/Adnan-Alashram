@@ -39,13 +39,13 @@ export const inquiryFields: InquiryField[] = [
   "profession",
   "currentCity",
   "currentCountry",
-  "originCity",
-  "originCountry",
+  // "originCity",
+  // "originCountry",
   "projectType",
   "projectDescription",
   "requirements",
   "desiredFeatures",
-  "otherDetails",
+  // "otherDetails",
 ];
 
 export const requiredInquiryFields: InquiryField[] = [
@@ -90,13 +90,13 @@ export function inquiryFieldLabel(field: InquiryField, arabic: boolean) {
     profession: ["profession or occupation", "المهنة أو مجال العمل"],
     currentCity: ["city", "المدينة"],
     currentCountry: ["country", "الدولة"],
-    originCity: ["city of origin, if relevant", "مدينة الأصل إذا كانت مهمة"],
-    originCountry: ["country of origin, if relevant", "دولة الأصل إذا كانت مهمة"],
+    originCity: ["city of origin", "مدينة الأصل"],
+    originCountry: ["country of origin", "بلد الأصل"],
     projectType: ["kind of project", "نوع المشروع"],
     projectDescription: ["a short description of the project", "وصف مختصر للمشروع"],
     requirements: ["the main requirements", "المتطلبات الأساسية"],
     desiredFeatures: ["the features you would like", "الميزات التي تريدها"],
-    otherDetails: ["any other useful project details", "أي تفاصيل أخرى مفيدة عن المشروع"],
+    otherDetails: ["any other details", "أي تفاصيل إضافية"],
   };
   return labels[field][arabic ? 1 : 0];
 }
@@ -111,11 +111,29 @@ export function nextInquiryField(inquiry: ProjectInquiry): InquiryField | null {
 }
 
 export function inquirySummary(inquiry: ProjectInquiry, arabic: boolean) {
-  const origin = [inquiry.originCity, inquiry.originCountry].filter(Boolean).join(", ") || (arabic ? "غير محدد" : "Not specified");
   const location = [inquiry.currentCity, inquiry.currentCountry].filter(Boolean).join(", ");
+  const origin = [inquiry.originCity, inquiry.originCountry].filter(Boolean).join(", ") || (arabic ? "غير محدد" : "Not specified");
   return arabic
     ? `الاسم: ${inquiry.name}\nالإيميل: ${inquiry.email}\nالهاتف: ${inquiry.phone}\nالمهنة: ${inquiry.profession}\nالموقع الحالي: ${location}\nالأصل: ${origin}\nنوع المشروع: ${inquiry.projectType}\nالوصف: ${inquiry.projectDescription}\nالمتطلبات: ${inquiry.requirements || "غير محددة"}\nالميزات: ${inquiry.desiredFeatures || "غير محددة"}\nتفاصيل إضافية: ${inquiry.otherDetails || "لا يوجد"}`
     : `Name: ${inquiry.name}\nEmail: ${inquiry.email}\nPhone: ${inquiry.phone}\nProfession: ${inquiry.profession}\nCurrent location: ${location}\nOrigin: ${origin}\nProject type: ${inquiry.projectType}\nDescription: ${inquiry.projectDescription}\nRequirements: ${inquiry.requirements || "Not specified"}\nDesired features: ${inquiry.desiredFeatures || "Not specified"}\nOther details: ${inquiry.otherDetails || "None"}`;
+}
+
+const firstMatch = (message: string, pattern: RegExp) => message.match(pattern)?.[1]?.trim() ?? "";
+
+export function extractInquiryDetails(message: string, current: ProjectInquiry): ProjectInquiry {
+  const email = firstMatch(message, /\b([\w.+-]+@[\w.-]+\.[a-z]{2,})\b/i);
+  const phone = firstMatch(message, /((?:\+?\d[\d\s().-]{6,}\d))/);
+  const name = firstMatch(message, /(?:my name is|i am|i'm|name is|اسمي|انا|أنا)\s+([\u0600-\u06ffa-z][\u0600-\u06ffa-z .'-]{1,30})/i);
+  const profession = firstMatch(message, /(?:i(?:'m| am) an?\s+|profession is\s+|مهنتي\s+)([\u0600-\u06ffa-z][\u0600-\u06ffa-z -]{2,30})/i);
+  const city = firstMatch(message, /(?:from|live in|living in|من|ساكن ب|عايش ب)\s+([\u0600-\u06ffa-z][\u0600-\u06ffa-z -]{1,30})/i);
+  return {
+    ...current,
+    ...(email ? { email } : {}),
+    ...(phone ? { phone } : {}),
+    ...(name ? { name: name.replace(/\s+(?:and|و)\s+.*$/i, "").trim() } : {}),
+    ...(profession ? { profession: profession.replace(/\s+(?:from|من|and|و)\s+.*$/i, "").trim() } : {}),
+    ...(city ? { currentCity: city.replace(/[,.].*$/, "").trim() } : {}),
+  };
 }
 
 export function buildWhatsAppMessage(inquiry: ProjectInquiry) {
@@ -131,8 +149,6 @@ export function buildWhatsAppMessage(inquiry: ProjectInquiry) {
       ["Profession", inquiry.profession],
       ["Current City", inquiry.currentCity],
       ["Current Country", inquiry.currentCountry],
-      ["Origin City", inquiry.originCity],
-      ["Origin Country", inquiry.originCountry],
     ],
     "",
     "Project Information",
@@ -142,7 +158,6 @@ export function buildWhatsAppMessage(inquiry: ProjectInquiry) {
       ["Project Description", inquiry.projectDescription],
       ["Requirements", inquiry.requirements],
       ["Desired Features", inquiry.desiredFeatures],
-      ["Other Details", inquiry.otherDetails],
     ],
     "",
     "Source: Adnan Portfolio AI",

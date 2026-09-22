@@ -32,6 +32,20 @@ export type LocalAnswer = {
   projectSlug?: string;
 };
 
+const smallTalk: Record<string, string> = {
+  hello: "Hey! How can I help you learn more about Adnan or his work?",
+  hi: "Hi! What would you like to know about Adnan?",
+  hey: "Hey! What can I help you with?",
+  "good morning": "Good morning! How can I help?",
+  thanks: "You're welcome!",
+  "thank you": "You're welcome!",
+  cool: "Glad that was useful.",
+  nice: "Thanks! What would you like to explore next?",
+  interesting: "It is a pretty interesting project space. What part caught your attention?",
+  okay: "Sounds good.",
+  "got it": "Great.",
+};
+
 const normalize = (value: string) =>
   value
     .toLowerCase()
@@ -45,6 +59,22 @@ const normalize = (value: string) =>
 
 export function isArabicMessage(message: string) {
   return /[\u0600-\u06ff]/.test(message);
+}
+
+function conversationalAnswer(question: string, previousAssistant = "") {
+  const normalized = normalize(question);
+  const arabic = isArabicMessage(question);
+  if (smallTalk[normalized]) return { text: smallTalk[normalized], intent: "unknown" as ChatIntent, confidence: 0.98, projectSlug: undefined };
+  if (/مسا الخير|مساء الخير|مرحبا|هلا|شلونك|يعطيك العافيه|شكرا|تمام|حلو/.test(normalized)) {
+    return { text: /شلونك/.test(normalized) ? "تمام، شكراً لسؤالك! كيف فيني ساعدك؟" : "أهلا! كيف فيني ساعدك تعرف أكتر عن عدنان أو شغله؟", intent: "unknown" as ChatIntent, confidence: 0.98, projectSlug: undefined };
+  }
+  if (/translate|ترجم|ممكن بالعربي|ترجمو|ترجملي/.test(normalized) && previousAssistant) {
+    return { text: arabic ? `أكيد. قصدي بالعربي: ${previousAssistant}` : previousAssistant, intent: "unknown" as ChatIntent, confidence: 0.95, projectSlug: undefined };
+  }
+  if (/what do you mean|i don.?t understand|clarify|شو يعني|ما فهمت|وضحلي|مو واضح/.test(normalized) && previousAssistant) {
+    return { text: arabic ? "أكيد. قصدي بالسؤال السابق إنك تخبرني المعلومة بطريقة بسيطة، مثل نوع شغلك أو نوع الميزة اللي بدك إياها." : "Sure. I mean the same thing in simpler words: tell me the detail in your own words, such as your work or the feature you want.", intent: "unknown" as ChatIntent, confidence: 0.95, projectSlug: undefined };
+  }
+  return null;
 }
 
 const intentTerms: Record<Exclude<ChatIntent, "project" | "unknown">, string[]> = {
@@ -213,7 +243,9 @@ export function generateLocalResponse(detected: DetectedIntent, question: string
   return { text, intent, confidence, projectSlug: project?.slug };
 }
 
-export function answerLocally(question: string, currentProjectSlug?: string) {
+export function answerLocally(question: string, currentProjectSlug?: string, previousAssistant?: string) {
+  const conversational = conversationalAnswer(question, previousAssistant);
+  if (conversational) return conversational;
   const detected = detectIntent(question, currentProjectSlug);
   return generateLocalResponse(detected, question);
 }
