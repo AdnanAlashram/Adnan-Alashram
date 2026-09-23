@@ -1,4 +1,30 @@
 # Future Horizon — Portfolio
+## Live chat configuration
+
+Copy the variables from `.env.example` into `.env.local`. Set a unique
+`ADMIN_SESSION_SECRET` with at least 32 characters and a strong `ADMIN_PASSWORD`
+with at least 12 characters. `npm run prisma:seed` creates or updates the single
+admin account from `ADMIN_EMAIL` and `ADMIN_PASSWORD`.
+
+Generate VAPID keys with:
+
+```bash
+npx web-push generate-vapid-keys
+```
+
+Put the public key in `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, the private key in
+`VAPID_PRIVATE_KEY`, and use a valid `mailto:` value for `VAPID_SUBJECT`. The private
+key must stay server-side. Web Push requires an HTTPS origin in production and a
+powered-on device; it can notify while the browser or dashboard is closed, but not
+when the physical device is powered off.
+
+The custom server requires a persistent Node.js host. Static hosting and a
+serverless-only Vercel deployment cannot host this Socket.IO process directly. Use a
+Node host such as Railway, Render, Fly.io, or a separate Socket.IO service, and move
+SQLite to PostgreSQL before running multiple application instances.
+
+The old AI provider key was removed from `.env.local`. Revoke or rotate that key in
+the provider console if it was ever active.
 
 Studio portfolio site built with Next.js 16 (App Router) and React 19, deployed as a
 fully static export.

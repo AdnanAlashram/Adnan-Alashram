@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id              String            @id @default(cuid())
+  email           String            @unique
+  passwordHash    String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  pushSubscriptions PushSubscription[]
+}
+
+model Conversation {
+  id            String       @id @default(cuid())
+  visitorId     String       @unique
+  visitorName   String?
+  status        ConversationStatus @default(open)
+  lastMessageAt DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  messages      Message[]
+  @@index([status, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  senderRole     SenderRole
+  content        String
+  readByAdmin    Boolean      @default(false)
+  readByVisitor  Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  @@index([conversationId, createdAt])
+  @@index([conversationId, senderRole, readByAdmin])
+  @@index([conversationId, senderRole, readByVisitor])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  adminId   String
+  endpoint  String   @unique
+  p256dh   String
+  auth      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  @@index([adminId])
+}
+
+enum ConversationStatus {
+  open
+  closed
+}
+
+enum SenderRole {
+  visitor
+  admin
+}

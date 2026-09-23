@@ -8,7 +8,7 @@ import Process from "@/components/Process";
 import Projects from "@/components/Projects";
 import Services from "@/components/Services";
 import TechStack from "@/components/TechStack";
-import AdnanChat from "@/components/AdnanChat";
+import LiveChat from "@/components/LiveChat";
 
 export default function Home() {
   return (
@@ -25,7 +25,7 @@ export default function Home() {
         <Contact />
       </main>
       <Footer />
-      <AdnanChat />
+      <LiveChat />
     </>
   );
 }
