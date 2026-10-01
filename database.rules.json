@@ -1,0 +1,52 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "conversations": {
+      "$conversationId": {
+        ".read": "auth != null && (auth.token.admin === true || data.child('authUid').val() === auth.uid || (!data.exists() && newData.child('authUid').val() === auth.uid))",
+        ".write": "auth != null && (auth.token.admin === true || (!data.exists() && newData.child('visitorId').val() === $conversationId && newData.child('authUid').val() === auth.uid) || (data.exists() && data.child('authUid').val() === auth.uid && newData.child('visitorId').val() === data.child('visitorId').val() && newData.child('authUid').val() === data.child('authUid').val() && newData.child('lastMessage').val() === data.child('lastMessage').val() && newData.child('lastMessageAt').val() === data.child('lastMessageAt').val() && newData.child('createdAt').val() === data.child('createdAt').val() && newData.child('status').val() === data.child('status').val() && newData.child('unreadForAdmin').val() === data.child('unreadForAdmin').val() && newData.child('unreadForVisitor').val() <= data.child('unreadForVisitor').val()))",
+        ".validate": "newData.hasChildren(['id', 'visitorId', 'authUid', 'status', 'lastMessageAt', 'createdAt', 'updatedAt', 'unreadForAdmin', 'unreadForVisitor']) && newData.child('id').val() === $conversationId && newData.child('visitorId').val() === $conversationId && newData.child('status').val().matches(/^(open|closed)$/)",
+        "lastMessage": {
+          ".validate": "!newData.exists() || (newData.hasChildren(['id', 'conversationId', 'senderRole', 'content', 'createdAt', 'readByAdmin', 'readByVisitor']) && newData.child('conversationId').val() === $conversationId && newData.child('senderRole').val().matches(/^(visitor|admin)$/) && newData.child('content').isString() && newData.child('content').val().length <= 2000)"
+        }
+      }
+    },
+    "messages": {
+      "$conversationId": {
+        ".read": "auth != null && (auth.token.admin === true || root.child('conversations').child($conversationId).child('authUid').val() === auth.uid)",
+        "$messageId": {
+          ".write": "auth != null && (auth.token.admin === true || (root.child('conversations').child($conversationId).child('authUid').val() === auth.uid && !data.exists() && newData.child('senderRole').val() === 'visitor' && newData.child('conversationId').val() === $conversationId))",
+          ".validate": "newData.hasChildren(['id', 'conversationId', 'senderRole', 'content', 'createdAt', 'readByAdmin', 'readByVisitor']) && newData.child('id').val() === $messageId && newData.child('conversationId').val() === $conversationId && newData.child('content').isString() && newData.child('content').val().length > 0 && newData.child('content').val().length <= 2000 && newData.child('senderRole').val().matches(/^(visitor|admin)$/)",
+          "readByVisitor": { ".write": "auth != null && root.child('conversations').child($conversationId).child('authUid').val() === auth.uid && newData.isBoolean()" },
+          "readByAdmin": { ".write": "auth != null && auth.token.admin === true && newData.isBoolean()" }
+        }
+      }
+    },
+    "visitors": {
+      "$visitorId": {
+        ".read": "auth != null && (auth.token.admin === true || data.child('authUid').val() === auth.uid)",
+        ".write": "auth != null && (auth.token.admin === true || ((!data.exists() && newData.child('authUid').val() === auth.uid) || (data.exists() && data.child('authUid').val() === auth.uid)))",
+        ".validate": "newData.hasChildren(['authUid', 'createdAt', 'updatedAt']) && newData.child('authUid').isString()"
+      }
+    },
+    "typing": {
+      "$conversationId": {
+        "$role": {
+          ".read": "auth != null && (auth.token.admin === true || root.child('conversations').child($conversationId).child('authUid').val() === auth.uid)",
+          ".write": "auth != null && (($role === 'admin' && auth.token.admin === true) || ($role === 'visitor' && root.child('conversations').child($conversationId).child('authUid').val() === auth.uid))",
+          ".validate": "newData.isBoolean()"
+        }
+      }
+    },
+    "adminDevices": {
+      "$adminId": {
+        ".read": "auth != null && auth.token.admin === true && auth.uid === $adminId",
+        "$deviceId": {
+          ".write": "auth != null && auth.token.admin === true && auth.uid === $adminId",
+          ".validate": "newData.hasChildren(['token', 'createdAt', 'updatedAt']) && newData.child('token').isString()"
+        }
+      }
+    }
+  }
+}

@@ -9,6 +9,7 @@ import Projects from "@/components/Projects";
 import Services from "@/components/Services";
 import TechStack from "@/components/TechStack";
 import LiveChat from "@/components/LiveChat";
+import { CHAT_ENABLED } from "@/lib/features";
 
 export default function Home() {
   return (
@@ -25,7 +26,7 @@ export default function Home() {
         <Contact />
       </main>
       <Footer />
-      <LiveChat />
+      {CHAT_ENABLED ? <LiveChat /> : null}
     </>
   );
 }
